@@ -136,12 +136,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onStart() {
         super.onStart();
-        // If BT is not on, request that it be enabled.
-        // setupChat() will then be called during onActivityResult
         if (!mBluetoothAdapter.isEnabled()) {
             Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
-            // Otherwise, setup the chat session
         } else if (mChatService == null) {
             setupChat();
         }
@@ -161,7 +158,6 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
 
         if (mChatService != null) {
-            // Only if the state is STATE_NONE, do we know that we haven't started already
             if (mChatService.getState() == BluetoothChatService.STATE_NONE) {
                 mChatService.start();
             }
@@ -169,18 +165,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupChat() {
-        // Initialize the array adapter for the conversation thread
         mConversationArrayAdapter = new CustomAdapterChat(chatList,MainActivity.this);
-
         lvChat.setAdapter(mConversationArrayAdapter);
-
-        // Initialize the BluetoothChatService to perform bluetooth connections
         mChatService = new BluetoothChatService(MainActivity.this, mHandler);
     }
 
-    /**
-     * Makes this device discoverable for 300 seconds (5 minutes).
-     */
     private void ensureDiscoverable() {
         if (mBluetoothAdapter.getScanMode() != BluetoothAdapter.SCAN_MODE_CONNECTABLE_DISCOVERABLE) {
             Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
@@ -191,21 +180,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Sends a message.
-     *
-     * @param message A string of text to send.
-     */
     private void sendMessage(String message) {
-        // Check that we're actually connected before trying anything
         if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
             Toast.makeText(MainActivity.this, "Not Connected", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Check that there's actually something to send
         if (message.length() > 0) {
-            // Get the message bytes and tell the BluetoothChatService to write
             byte[] send = message.getBytes();
             mChatService.write(send);
             etMessage.setText("");
@@ -214,9 +195,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * The Handler that gets information back from the BluetoothChatService
-     */
+
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -238,18 +217,15 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case Constants.MESSAGE_WRITE:
                     byte[] writeBuf = (byte[]) msg.obj;
-                    // construct a string from the buffer
                     String writeMessage = new String(writeBuf);
                     mConversationArrayAdapter.add(new ChatModel(0,writeMessage));
                     break;
                 case Constants.MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
-                    // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
                     mConversationArrayAdapter.add(new ChatModel(1,readMessage));
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
-                    // save the connected device's name
                     mConnectedDeviceName = msg.getData().getString(Constants.DEVICE_NAME);
                         Toast.makeText(MainActivity.this, "Connected to " + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                     break;
