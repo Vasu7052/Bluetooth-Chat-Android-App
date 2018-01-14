@@ -25,6 +25,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -46,8 +47,9 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothChatService mChatService = null;
 
     AlertDialog alertDialog ;
-    TextView tvScanDevices , tvScanTitle , tvEmpty;
+    TextView tvScanDevices  , tvCancel , tvScanTitle , tvEmpty ;
     ListView lvScan ;
+    LinearLayout llBottomButtons ;
 
     ArrayList<BlueToothDeviceModel> scanDevicesList;
     ArrayList<ChatModel> chatList;
@@ -73,7 +75,10 @@ public class MainActivity extends AppCompatActivity {
         tvScanTitle = (TextView) dialogView.findViewById(R.id.tvScanTitle) ;
         lvScan = (ListView) dialogView.findViewById(R.id.lvScanDevices) ;
         tvScanDevices = (TextView) dialogView.findViewById(R.id.tvScanDevices) ;
+        tvCancel = (TextView) dialogView.findViewById(R.id.tvCancel) ;
         tvEmpty = (TextView) dialogView.findViewById(R.id.tvEmpty) ;
+
+        llBottomButtons = (LinearLayout) dialogView.findViewById(R.id.llBottomButtons) ;
 
         scanDevicesList = new ArrayList<>();
         chatList = new ArrayList<>();
@@ -100,6 +105,29 @@ public class MainActivity extends AppCompatActivity {
                 String message = etMessage.getText().toString();
                 sendMessage(message);
 
+            }
+        });
+
+        tvScanDevices.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v) {
+                alertDialog.dismiss();
+                showDevices();
+            }
+        });
+
+        tvCancel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (alertDialog.isShowing())alertDialog.dismiss();
+            }
+        });
+
+        lvScan.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                BlueToothDeviceModel temp = (BlueToothDeviceModel) parent.getItemAtPosition(position) ;
+                mChatService.connect(temp.getDevice(),true);
+                if (alertDialog.isShowing())alertDialog.dismiss();
             }
         });
 
@@ -248,23 +276,8 @@ public class MainActivity extends AppCompatActivity {
 
             tvScanTitle.setText("Scanning Devices");
             if (tvEmpty.getVisibility()==View.VISIBLE)tvEmpty.setVisibility(View.GONE);
+            if (llBottomButtons.getVisibility()==View.VISIBLE)llBottomButtons.setVisibility(View.GONE);
             alertDialog.show();
-
-            tvScanDevices.setOnClickListener(new View.OnClickListener(){
-                public void onClick(View v) {
-                    alertDialog.dismiss();
-                    showDevices();
-                }
-            });
-
-            lvScan.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                    BlueToothDeviceModel temp = (BlueToothDeviceModel) parent.getItemAtPosition(position) ;
-                    mChatService.connect(temp.getDevice(),true);
-                    if (alertDialog.isShowing())alertDialog.dismiss();
-                }
-            });
 
         }else{
             Toast.makeText(this, "Bluetooth is Not Enabled", Toast.LENGTH_SHORT).show();
@@ -279,6 +292,7 @@ public class MainActivity extends AppCompatActivity {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 scanDevicesList.add(new BlueToothDeviceModel(device));
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                if (llBottomButtons.getVisibility()==View.GONE)llBottomButtons.setVisibility(View.VISIBLE);
                 tvScanTitle.setText("Scan Finished");
                 tvScanDevices.setEnabled(true);
                 if (scanDevicesList.size() == 0) {
