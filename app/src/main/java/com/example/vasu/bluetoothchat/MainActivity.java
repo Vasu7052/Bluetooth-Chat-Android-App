@@ -1,5 +1,6 @@
 package com.example.vasu.bluetoothchat;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -7,9 +8,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -31,7 +35,6 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "BluetoothChatFragment";
 
-    private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
     private static final int REQUEST_ENABLE_BT = 3;
 
     private ListView lvChat;
@@ -74,6 +77,9 @@ public class MainActivity extends AppCompatActivity {
 
         scanDevicesList = new ArrayList<>();
         chatList = new ArrayList<>();
+
+        ActivityCompat.requestPermissions(this,new String[]
+                {Manifest.permission.ACCESS_FINE_LOCATION}, 1);
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -286,6 +292,24 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case 1: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                } else {
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                }
+                return;
+            }
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
