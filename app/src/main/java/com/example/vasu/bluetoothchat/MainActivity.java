@@ -12,7 +12,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -21,9 +20,12 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -34,42 +36,58 @@ public class MainActivity extends AppCompatActivity {
 
     private ListView lvChat;
     private EditText etMessage;
-    private Button mSendButton;
+    private ImageButton mSendButton;
     private String mConnectedDeviceName = null;
-    private ArrayAdapter<String> mConversationArrayAdapter;
+    private CustomAdapterChat mConversationArrayAdapter;
     private BluetoothAdapter mBluetoothAdapter = null;
     private BluetoothChatService mChatService = null;
 
-    TextView tvScanDevices , tvScanTitle ;
+    AlertDialog alertDialog ;
+    TextView tvScanDevices , tvScanTitle , tvEmpty;
     ListView lvScan ;
 
-    ArrayAdapter<String> scanDevicesAdapter;
+    ArrayList<BlueToothDeviceModel> scanDevicesList;
+    ArrayList<ChatModel> chatList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //getSupportActionBar().setTitle("APP STARTEED");
         getSupportActionBar().setSubtitle("");
 
         lvChat = (ListView) findViewById(R.id.lvChat);
         etMessage = (EditText) findViewById(R.id.edit_text_out);
-        mSendButton = (Button) findViewById(R.id.button_send);
+        mSendButton = (ImageButton) findViewById(R.id.button_send);
 
-        scanDevicesAdapter = new ArrayAdapter<String>(this,R.layout.message);
+        LayoutInflater myLayout = LayoutInflater.from(this);
+        final View dialogView = myLayout.inflate(R.layout.custom_dialog_for_scan, null);
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+        alertDialogBuilder.setView(dialogView);
+        alertDialogBuilder.setCancelable(false);
+        alertDialog = alertDialogBuilder.create();
+        alertDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+        tvScanTitle = (TextView) dialogView.findViewById(R.id.tvScanTitle) ;
+        lvScan = (ListView) dialogView.findViewById(R.id.lvScanDevices) ;
+        tvScanDevices = (TextView) dialogView.findViewById(R.id.tvScanDevices) ;
+        tvEmpty = (TextView) dialogView.findViewById(R.id.tvEmpty) ;
+
+        scanDevicesList = new ArrayList<>();
+        chatList = new ArrayList<>();
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         if (mBluetoothAdapter == null) {
             Toast.makeText(this, "Bluetooth is not available", Toast.LENGTH_LONG).show();
         }else{
-            IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-            this.registerReceiver(mReceiver, filter);
 
-            filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
-            this.registerReceiver(mReceiver, filter);
         }
+
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        this.registerReceiver(mReceiver, filter);
+
+        filter = new IntentFilter(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
+        this.registerReceiver(mReceiver, filter);
 
         mSendButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -117,10 +135,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupChat() {
-        Log.d(TAG, "setupChat()");
-
         // Initialize the array adapter for the conversation thread
-        mConversationArrayAdapter = new ArrayAdapter<String>(MainActivity.this, R.layout.message);
+        mConversationArrayAdapter = new CustomAdapterChat(chatList,MainActivity.this);
 
         lvChat.setAdapter(mConversationArrayAdapter);
 
@@ -136,6 +152,8 @@ public class MainActivity extends AppCompatActivity {
             Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
             discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
             startActivity(discoverableIntent);
+        }else{
+            Toast.makeText(this, "Already Discoverable", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -156,7 +174,6 @@ public class MainActivity extends AppCompatActivity {
             // Get the message bytes and tell the BluetoothChatService to write
             byte[] send = message.getBytes();
             mChatService.write(send);
-
             etMessage.setText("");
         }else{
             Toast.makeText(this, "Empty Message!", Toast.LENGTH_SHORT).show();
@@ -189,13 +206,13 @@ public class MainActivity extends AppCompatActivity {
                     byte[] writeBuf = (byte[]) msg.obj;
                     // construct a string from the buffer
                     String writeMessage = new String(writeBuf);
-                    mConversationArrayAdapter.add("Me:  " + writeMessage);
+                    mConversationArrayAdapter.add(new ChatModel(0,writeMessage));
                     break;
                 case Constants.MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
-                    mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage);
+                    mConversationArrayAdapter.add(new ChatModel(1,readMessage));
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
                     // save the connected device's name
@@ -211,28 +228,20 @@ public class MainActivity extends AppCompatActivity {
 
     public void showDevices(){
         if (mBluetoothAdapter.isEnabled()){
+
+            scanDevicesList.clear();
+
             if (mBluetoothAdapter.isDiscovering()) {
                 mBluetoothAdapter.cancelDiscovery();
             }
             ensureDiscoverable();
             mBluetoothAdapter.startDiscovery();
 
-            LayoutInflater myLayout = LayoutInflater.from(this);
-            final View dialogView = myLayout.inflate(R.layout.custom_dialog_for_scan, null);
-            AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-            alertDialogBuilder.setView(dialogView);
-
-            final AlertDialog alertDialog = alertDialogBuilder.create();
-
-            alertDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
-
-            tvScanTitle = (TextView) dialogView.findViewById(R.id.tvScanTitle) ;
-            lvScan = (ListView) dialogView.findViewById(R.id.lvScanDevices) ;
-            tvScanDevices = (TextView) dialogView.findViewById(R.id.tvScanDevices) ;
-
             if (mBluetoothAdapter.isDiscovering())tvScanDevices.setEnabled(false);
             else tvScanDevices.setEnabled(true);
 
+            tvScanTitle.setText("Scanning Devices");
+            if (tvEmpty.getVisibility()==View.VISIBLE)tvEmpty.setVisibility(View.GONE);
             alertDialog.show();
 
             tvScanDevices.setOnClickListener(new View.OnClickListener(){
@@ -245,7 +254,9 @@ public class MainActivity extends AppCompatActivity {
             lvScan.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                    Toast.makeText(MainActivity.this, ""+parent.getItemAtPosition(position).toString(), Toast.LENGTH_SHORT).show();
+                    BlueToothDeviceModel temp = (BlueToothDeviceModel) parent.getItemAtPosition(position) ;
+                    mChatService.connect(temp.getDevice(),true);
+                    if (alertDialog.isShowing())alertDialog.dismiss();
                 }
             });
 
@@ -260,30 +271,21 @@ public class MainActivity extends AppCompatActivity {
             String action = intent.getAction();
             if (BluetoothDevice.ACTION_FOUND.equals(action)) {
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                scanDevicesAdapter.add(device.getAddress());
-                Toast.makeText(context, ""+device.getName(), Toast.LENGTH_SHORT).show();
-
+                scanDevicesList.add(new BlueToothDeviceModel(device));
             } else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 tvScanTitle.setText("Scan Finished");
                 tvScanDevices.setEnabled(true);
-                if (scanDevicesAdapter.getCount() == 0) {
-                    scanDevicesAdapter.add("No Devices");
+                if (scanDevicesList.size() == 0) {
+                    Toast.makeText(context, "ZERO", Toast.LENGTH_SHORT).show();
+                    if (tvEmpty.getVisibility()==View.GONE)tvEmpty.setVisibility(View.VISIBLE);
                 }else{
-                    scanDevicesAdapter.notifyDataSetChanged();
-                    lvScan.setAdapter(scanDevicesAdapter);
+                    CustomAdapterScan adapterScan = new CustomAdapterScan(scanDevicesList,MainActivity.this);
+                    lvScan.setAdapter(adapterScan);
                 }
+
             }
         }
     };
-
-    private void connectDevice(Intent data, boolean secure) {
-        // Get the device MAC address
-        //String address = data.getExtras().getString(DeviceListActivity.EXTRA_DEVICE_ADDRESS);
-        // Get the BluetoothDevice object
-       // BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
-        // Attempt to connect to the device
-        //mChatService.connect(device, secure);
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

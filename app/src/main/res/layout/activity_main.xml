@@ -15,27 +15,37 @@
         android:layout_height="match_parent"
         android:layout_weight="1"
         android:stackFromBottom="true"
-        android:transcriptMode="alwaysScroll" />
+        android:transcriptMode="alwaysScroll"
+        android:dividerHeight="-2sp"/>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:focusable="true"
-        android:focusableInTouchMode="true" >
+        android:focusableInTouchMode="true"
+        android:padding="5sp"
+        android:gravity="center_vertical">
 
         <EditText
             android:id="@+id/edit_text_out"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:layout_weight="1" />
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/rounded_edittext_type_message"
+            android:gravity="center_vertical"
+            android:paddingLeft="15sp"
+            android:layout_margin="3sp"
+            android:hint="Enter Message Here"/>
 
-        <Button
+        <ImageButton
             android:id="@+id/button_send"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="SEND" />
+            android:background="@drawable/rounded_button_send"
+            android:src="@drawable/ic_send"
+            android:padding="10sp"
+            android:layout_marginLeft="7dp"/>
     </LinearLayout>
 
 </LinearLayout>
