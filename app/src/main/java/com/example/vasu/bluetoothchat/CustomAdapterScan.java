@@ -53,7 +53,9 @@ public class CustomAdapterScan extends ArrayAdapter<BlueToothDeviceModel> {
         if (convertView == null) {
 
             viewHolder = new ViewHolder();
-
+            LayoutInflater inflater = LayoutInflater.from(getContext());
+            convertView = inflater.inflate(R.layout.list_item_for_scan_list, parent, false);
+            viewHolder.tvName = (TextView) convertView.findViewById(R.id.tvName);
             viewHolder.tvAddress = (TextView) convertView.findViewById(R.id.tvAddress);
 
             result=convertView;

@@ -103,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
         mSendButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 String message = etMessage.getText().toString();
+                message = message.trim();
                 sendMessage(message);
 
             }
